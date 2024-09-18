@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪刀石頭布遊戲</title>
+    <!-- 導入 SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f8b500, #fceabb);
+            overflow: hidden;
+        }
+        .header {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin: 0;
+            color: #333;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            width: 100px;
+            height: 100px;
+            font-size: 16px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s, color 0.3s, background-blend-mode 0.3s;
+            background-color: white;
+        }
+        button:hover {
+            transform: scale(1.2); /* 放大按鈕 */
+        }
+        #scissors {
+            background-image: url('https://img.lovepik.com/free-png/20211216/lovepik-scissors-png-image_401704653_wh1200.png');
+        }
+        #rock {
+            background-image: url('https://thumb.silhouette-ac.com/t/6e/6e8bf918245f42321ba8d85e6081c17a_t.jpeg');
+        }
+        #paper {
+            background-image: url('https://class.vbird.tw/~4070c018/web2/images/paper.png');
+        }
+
+        /* 當滑鼠移到按鈕上時，改變背景顏色，同時保留圖片 */
+        #scissors:hover {
+            background-color: red;
+            color: white;
+            background-blend-mode: multiply; /* 混合圖片與背景顏色 */
+        }
+        #rock:hover {
+            background-color: gray;
+            color: white;
+            background-blend-mode: multiply;
+        }
+        #paper:hover {
+            background-color: blue;
+            color: white;
+            background-blend-mode: multiply;
+        }
+
+        #result {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            transition: opacity 0.5s;
+        }
+        #player-choice {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #000;
+            font-weight: bold;
+        }
+        #score {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>剪刀石頭布</h1>
+        <div class="button-container">
+            <button id="scissors">剪刀</button>
+            <button id="rock">石頭</button>
+            <button id="paper">布</button>
+        </div>
+        <div id="player-choice">你尚未選擇</div> <!-- 顯示玩家選擇的區域 -->
+        <div id="result"></div>
+        <div id="score">玩家得分: 0 | 電腦得分: 0</div>
+    </div>
+
+    <!-- 使用可播放的 mp3 音效文件 -->
+    <audio id="win-sound" src="win.mp3"></audio>
+    <audio id="lose-sound" src="lose.mp3"></audio>
+    <audio id="draw-sound" src="draw.mp3"></audio>
+
+    <script>
+        const choices = ['剪刀', '石頭', '布'];
+        let playerScore = 0;
+        let computerScore = 0;
+        const winningScore = 3; // 設置先到三勝者為勝利者
+        let gameOver = false; // 新增變數來控制遊戲狀態
+
+        // 遊戲邏輯
+        function playGame(playerChoice) {
+            // 如果遊戲結束了，就不再接受輸入
+            if (gameOver) return;
+
+            // 更新玩家的選擇顯示
+            document.getElementById('player-choice').textContent = `你選擇了：${playerChoice}`;
+
+            const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+            let result;
+            const resultDisplay = document.getElementById('result'); // 取得結果顯示區域
+
+            // 比較結果
+            if (playerChoice === computerChoice) {
+                result = '平手！';
+                resultDisplay.style.color = 'orange'; // 平手時顯示橙色
+                playSound('draw'); // 撥放平手音效
+            } else if (
+                (playerChoice === '剪刀' && computerChoice === '布') ||
+                (playerChoice === '石頭' && computerChoice === '剪刀') ||
+                (playerChoice === '布' && computerChoice === '石頭')
+            ) {
+                playerScore++;
+                result = `你選擇了${playerChoice}，電腦選擇了${computerChoice}。你贏了！`;
+                resultDisplay.style.color = 'green'; // 贏的時候顯示綠色
+                playSound('win'); // 撥放勝利音效
+            } else {
+                computerScore++;
+                result = `你選擇了${playerChoice}，電腦選擇了${computerChoice}。你輸了！`;
+                resultDisplay.style.color = 'red'; // 輸的時候顯示紅色
+                playSound('lose'); // 撥放失敗音效
+            }
+
+            // 更新結果和分數顯示
+            resultDisplay.textContent = result;
+            document.getElementById('score').textContent = `玩家得分: ${playerScore} | 電腦得分: ${computerScore}`;
+
+            // 檢查是否有一方達到三勝
+            checkWinner();
+        }
+
+        // 檢查誰先達到三次勝利
+        function checkWinner() {
+            if (playerScore === winningScore) {
+                showWinner('玩家');
+            } else if (computerScore === winningScore) {
+                showWinner('電腦');
+            }
+        }
+
+        // 播放對應的音效並設置自動停止
+        function playSound(result) {
+            const winSound = document.getElementById('win-sound');
+            const loseSound = document.getElementById('lose-sound');
+            const drawSound = document.getElementById('draw-sound');
+
+            let sound;
+            if (result === 'win') {
+                sound = winSound;
+            } else if (result === 'lose') {
+                sound = loseSound;
+            } else if (result === 'draw') {
+                sound = drawSound;
+            }
+
+            if (sound) {
+                sound.play();
+                setTimeout(() => {
+                    sound.pause();  // 暫停音效
+                    sound.currentTime = 0;  // 將音效重置到起始位置
+                }, 2000);  // 播放2秒後停止
+            }
+        }
+
+        // 使用 SweetAlert2 顯示勝利訊息並提供選項
+        function showWinner(winner) {
+            gameOver = true; // 設置遊戲結束，禁止輸入
+
+            Swal.fire({
+                title: `${winner}贏了！`,
+                icon: 'success',
+                confirmButtonText: '重新開始',
+                allowOutsideClick: false,  // 禁止點擊彈窗外部區域關閉彈窗
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    resetGame();
+                }
+            });
+        }
+
+        // 重置遊戲
+        function resetGame() {
+            playerScore = 0;
+            computerScore = 0;
+            gameOver = false; // 重置遊戲結束狀態
+            document.getElementById('result').textContent = '';
+            document.getElementById('player-choice').textContent = '你尚未選擇';
+            document.getElementById('score').textContent = `玩家得分: 0 | 電腦得分: 0`;
+        }
+
+        // 添加事件監聽器
+        document.getElementById('scissors').addEventListener('click', () => playGame('剪刀'));
+        document.getElementById('rock').addEventListener('click', () => playGame('石頭'));
+        document.getElementById('paper').addEventListener('click', () => playGame('布'));
+    </script>
+</body>
+</html>
